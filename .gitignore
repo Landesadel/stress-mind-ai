@@ -1,0 +1,7 @@
+.venv
+datasets
+main.py
+.idea
+.python-version
+tests
+.env
