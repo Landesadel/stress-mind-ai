@@ -5,7 +5,7 @@ import seaborn as sns
 
 
 # Загрузка данных
-df = pd.read_csv('../data/mechanism_data.csv')
+df = pd.read_csv('data/mechanism_data.csv')
 X = df[['Mental Stress Level']]
 y = df.drop('Mental Stress Level', axis=1)
 
@@ -13,35 +13,42 @@ y = df.drop('Mental Stress Level', axis=1)
 X = X.values.reshape(-1, 1)
 y = y.values
 
-# Построение модели
+# Упрощенная модель
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(64, activation='relu', input_shape=(1,)),
-    tf.keras.layers.Dense(32, activation='relu'),
+    tf.keras.layers.Dense(16, activation='relu', input_shape=(X.shape[1],)),
     tf.keras.layers.Dense(y.shape[1], activation='sigmoid')
 ])
 
 model.compile(
-    optimizer='adam',
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
     loss='binary_crossentropy',
-    metrics=['accuracy']
+    metrics=['accuracy', 'precision', 'recall', 'auc']
 )
 
 checkpoint = tf.keras.callbacks.ModelCheckpoint(
-    '../models/mechanism_model.keras',
+    'models/mechanism_model.keras',
     save_best_only=True,
     monitor='val_accuracy',
     mode='max'
 )
 
+early_stop = tf.keras.callbacks.EarlyStopping(
+    monitor='val_auc',
+    patience=20,
+    mode='max',
+    restore_best_weights=True
+)
+
 history = model.fit(
     X, y,
-    epochs=150,
+    epochs=100,
+    batch_size=64,
     validation_split=0.2,
-    callbacks=[checkpoint],
+    callbacks=[early_stop, checkpoint],
     verbose=1
 )
 
-pd.DataFrame(history.history).to_csv('../metrics/mechanism_metrics.csv', index=False)
+pd.DataFrame(history.history).to_csv('training/metrics/mechanism_metrics.csv', index=False)
 
 # Строим график
 sns.set_style("whitegrid")
@@ -68,5 +75,5 @@ plt.yticks(fontsize=10)
 
 # Регулировка отступов и сохранение
 plt.tight_layout()
-plt.savefig('metrics/training_mechanisms_model_history.png', dpi=300, bbox_inches='tight')
+plt.savefig('training/etrics/training_mechanisms_model_history.png', dpi=300, bbox_inches='tight')
 plt.close()

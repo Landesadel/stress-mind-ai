@@ -5,3 +5,5 @@ main.py
 .python-version
 tests
 .env
+ml/data/metrics
+ml/training/metrics

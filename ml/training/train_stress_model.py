@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # Загрузка данных
-df = pd.read_csv('../data/stress_data.csv')
+df = pd.read_csv('data/stress_data.csv')
 X = df.drop('Mental Stress Level', axis=1)
 y = df['Mental Stress Level']
 
@@ -17,36 +17,52 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 # Построение модели
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+    tf.keras.layers.Dense(64, activation='relu', input_shape=(X_train.shape[1],), kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    tf.keras.layers.BatchNormalization(),
     tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l1_l2(0.01, 0.01)),
     tf.keras.layers.Dense(1)
 ])
 
-model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse', metrics=['mse', 'mae'])
 
 # Колбэк для сохранения лучшей модели
 checkpoint = tf.keras.callbacks.ModelCheckpoint(
-    '../models/stress_model.keras',
+    'models/stress_model.keras',
     save_best_only=True,
     monitor='val_loss',
     mode='min'
 )
 
+lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=10
+)
+
 history = model.fit(
     X_train, y_train,
     epochs=200,
+    batch_size=64,
     validation_split=0.2,
-    callbacks=[checkpoint],
+    callbacks=[checkpoint, lr_scheduler],
     verbose=1
 )
 
 # Сохранение метрик
-pd.DataFrame(history.history).to_csv('metrics/stress_metrics.csv', index=False)
+pd.DataFrame(history.history).to_csv('training/metrics/stress_metrics.csv', index=False)
 
 # Настройка стиля графиков
 sns.set_style("whitegrid")
 plt.figure(figsize=(14, 6))
+
+# Предсказания vs Реальные значения
+plt.subplot(1, 2, 1)
+sns.regplot(x=y_test, y=model.predict(X_test).flatten())
+plt.plot([0,10], [0,10], 'r--')
+plt.title('Actual vs Predicted Stress Levels')
+plt.xlabel('Actual')
+plt.ylabel('Predicted')
 
 # График потерь
 plt.subplot(1, 2, 2)
@@ -69,5 +85,5 @@ plt.yticks(fontsize=10)
 
 # Регулировка отступов и сохранение
 plt.tight_layout()
-plt.savefig('metrics/training_stress_model_history.png', dpi=300, bbox_inches='tight')
+plt.savefig('training/metrics/training_stress_model_history.png', dpi=300, bbox_inches='tight')
 plt.close()
