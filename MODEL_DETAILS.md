@@ -18,48 +18,76 @@
 ### Архитектура модели
 ```python
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(128, activation='relu', input_shape=(13,)),
+    tf.keras.layers.Dense(64, activation='relu', input_shape=(13,)),
+    tf.keras.layers.BatchNormalization(),
     tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l1_l2(0.01)),
     tf.keras.layers.Dense(1)
 ])
 ```
 ### Слой за слоем:
-**Входной слой:** 13 нейронов (по числу признаков)
+**Входной слой:** 64 нейрона с ReLU + L2-регуляризация (λ=0.01)
 
-**Dropout (30%):** Борьба с переобучением
+**Batch Normalization:** Стандартизация активаций предыдущего слоя
 
-**Скрытые слои:** 128 → 64 нейронов (ReLU)
+**Dropout (30%):** Исключение случайных нейронов для борьбы с переобучением
 
-**Выход:** 1 нейрон (линейная активация)
+**Скрытые слои:** 32 нейрона с ReLU + комбинированная L1/L2-регуляризация (λ=0.01)
+
+**Выход:** 1 нейрон с линейной активацией для регрессии
 
 ### Параметры обучения
 ```python
-model.compile(
-    optimizer='adam',
-    loss='mse',
-    metrics=['mae']
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    'models/stress_model.keras',
+    save_best_only=True,
+    monitor='val_loss',
+    mode='min'
 )
 
-checkpoint = ModelCheckpoint(
-    '../models/stress_model.keras',
-    save_best_only=True,
-    monitor='val_loss'
+lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=10
+)
+
+history = model.fit(
+    X_train, y_train,
+    epochs=200,
+    batch_size=64,
+    validation_split=0.2,
+    callbacks=[checkpoint, lr_scheduler],
+    verbose=1
 )
 ```
 
 ### Особенности
 **Тип задачи:** Регрессия
 
+**Регуляризация:**
+
+- L2-регуляризация в первом слое
+
+- Смешанная L1/L2-регуляризация во втором скрытом слое
+
+**Оптимизация обучения:**
+
+- Автоматическое уменьшение learning rate при плато (пациент=10 эпох)
+
+- Пакетная нормализация между слоями
+
+- Сохранение лучшей модели по val_loss
+
 **Метрики качества:**
 
 - MAE (Mean Absolute Error)
 - MSE (Mean Squared Error)
 
-**Валидация:** 20% от тренировочных данных
+**Стратегия валидации:**
 
-**Ранняя остановка:** При отсутствии улучшений > 5 эпох
+- 20% данных выделено для валидации
 
+- Тестовый набор: 20% от исходных данных
 
 ---
 
@@ -67,37 +95,72 @@ checkpoint = ModelCheckpoint(
 ### Архитектура модели
 ```python
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(64, activation='relu', input_shape=(1,)),
-    tf.keras.layers.Dense(32, activation='relu'),
-    tf.keras.layers.Dense(8, activation='sigmoid')
+    tf.keras.layers.Dense(32, activation='relu', input_shape=(1,)),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dense(16, activation='relu'),
+    tf.keras.layers.Dense(y.shape[1], activation='sigmoid')
 ])
 ```
 
 ### Слой за слоем:
 **Вход:** Нормализованный уровень стресса (0-1)
 
-**Скрытые слои:** 64 → 32 нейрона (ReLU)
+**Скрытые слои:** 32 нейрона с ReLU
 
-**Выход:** 8 нейронов (sigmoid для мульти-лейбл классификации)
+**Dropout (30%):** Случайное отключение нейронов для борьбы с переобучением
+
+**Второй скрытый слой:** 16 нейронов с ReLU
+
+**Выход:** y.shape[1] нейронов (сигмоида для независимой бинарной классификации)
 
 ### Параметры обучения
 
 ```python
 model.compile(
-    optimizer='adam',
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.005),
     loss='binary_crossentropy',
-    metrics=['accuracy']
+    metrics=[
+        tf.keras.metrics.Precision(name='precision'),
+        tf.keras.metrics.Recall(name='recall'),
+        tf.keras.metrics.AUC(name='auc')
+    ]
 )
 
-checkpoint = ModelCheckpoint(
-    '../models/mechanism_model.keras',
-    monitor='val_accuracy',
-    save_best_only=True
+early_stopping = tf.keras.callbacks.EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True
 )
 ```
 
 ### Особенности
-**Тип задачи:** Мульти-лейбл классификация
+**Тип задачи:** ММульти-лейбл классификация механизмов борьбы со стрессом
+
+**Ключевые моменты:**
+
+- Добавление Dropout (30%) для регуляризации
+- Динамический выходной слой под размер целевых данных (y.shape[1])
+
+**Метрики оценки:**
+
+- Precision: Доля релевантных рекомендаций
+- Recall: Покрытие всех необходимых рекомендаций
+- AUC: Качество разделения классов
+
+**Оптимизация обучения:**
+
+- Ранняя остановка при отсутствии улучшений 5 эпох
+- Адаптивный learning rate (стартовое значение 0.005)
+
+**Стратегия валидации:**
+
+- Тестовый набор: 20% исходных данных
+- Валидация на обучении: 20% от тренировочного набора
+
+**Особенности данных:**
+
+- Целевые переменные: бинарные векторы рекомендаций
+- Нормализация входного признака (Mental Stress Level) в диапазон [0, 1]
 
 **Классы рекомендаций (пример):**
 

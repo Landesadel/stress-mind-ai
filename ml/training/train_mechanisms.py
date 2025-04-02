@@ -1,50 +1,60 @@
-import tensorflow as tf
 import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
-# Загрузка данных
+# Загрузка и подготовка данных
 df = pd.read_csv('data/mechanism_data.csv')
-X = df[['Mental Stress Level']]
-y = df.drop('Mental Stress Level', axis=1)
 
-# Преобразование данных
-X = X.values.reshape(-1, 1)
-y = y.values
+# Анализ распределения уровня стресса
+plt.hist(df['Mental Stress Level'], bins=11)
+plt.title('Распределение уровня стресса')
+plt.show()
 
-# Упрощенная модель
+# Разделение данных
+X = df[['Mental Stress Level']].values
+y = df.drop('Mental Stress Level', axis=1).values
+
+# Нормализация уровня стресса (0-10 -> 0-1)
+X = X / 10.0
+
+# Разделение на тренировочный и тестовый наборы
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Построение перцептрона с несколькими выходами
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(16, activation='relu', input_shape=(X.shape[1],)),
+    tf.keras.layers.Dense(32, activation='relu', input_shape=(1,)),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dense(16, activation='relu'),
     tf.keras.layers.Dense(y.shape[1], activation='sigmoid')
 ])
 
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.005),
     loss='binary_crossentropy',
-    metrics=['accuracy', 'precision', 'recall', 'auc']
+    metrics=[
+        tf.keras.metrics.Precision(name='precision'),
+        tf.keras.metrics.Recall(name='recall'),
+        tf.keras.metrics.AUC(name='auc')
+    ]
 )
 
-checkpoint = tf.keras.callbacks.ModelCheckpoint(
-    'models/mechanism_model.keras',
-    save_best_only=True,
-    monitor='val_accuracy',
-    mode='max'
-)
-
-early_stop = tf.keras.callbacks.EarlyStopping(
-    monitor='val_auc',
-    patience=20,
-    mode='max',
+early_stopping = tf.keras.callbacks.EarlyStopping(
+    monitor='val_loss',
+    patience=5,
     restore_best_weights=True
 )
 
+# Обучение модели
 history = model.fit(
-    X, y,
-    epochs=100,
-    batch_size=64,
+    X_train, y_train,
+    epochs=50,
+    batch_size=32,
     validation_split=0.2,
-    callbacks=[early_stop, checkpoint],
+    callbacks=[early_stopping],
     verbose=1
 )
 
