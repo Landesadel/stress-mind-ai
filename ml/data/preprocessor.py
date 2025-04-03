@@ -1,6 +1,3 @@
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -36,7 +33,7 @@ print("\n[3] Пропущенные значения:")
 print(missing_values)
 
 # 3. Анализ целевой переменной
-plt.figure(figsize=(8,6))
+plt.figure(figsize=(8, 6))
 sns.countplot(x='Mental Stress Level', data=df)
 plt.title('Распределение целевой переменной')
 plt.savefig('data/metrics/target_distribution.png')
