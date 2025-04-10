@@ -7,3 +7,8 @@ tests
 .env
 ml/data/metrics
 ml/training/metrics
+ml/models/mechanisms_model.keras
+ml/models/stress_model.keras
+**/__pycache__/
+ml/data/mechanism_data.csv
+ml/data/stress_data.csv

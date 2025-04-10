@@ -1,6 +1,6 @@
 import math
 
-import requests
+import os
 from fastapi import APIRouter
 import pandas as pd
 import asyncio
@@ -21,17 +21,18 @@ router = APIRouter()
 
 
 @router.post("/predict", response_model=AdviceResponse)
-async def process_predict(data: UserData):
+def process_predict(data: UserData):
     """
 
     :param data: данные для предсказаний
     :return: str ответ модели
     """
-    df_data = pd.DataFrame([data])
+    df_data = pd.DataFrame([dict(data)])
 
     stress_model = StressModel()
-    stress_level = await asyncio.create_task(stress_model.predict(df_data))
-    stress_level = math.ceil(abs(stress_level)[0][0])
+    stress_level = stress_model.predict(df_data)
+    print(f"stress_level: {stress_level}")
+    stress_level = math.ceil(abs(stress_level))
 
     mechanism_model = MechanismModel()
     recommend_mechanisms = mechanism_model.predict(stress_level)
@@ -52,10 +53,10 @@ async def process_predict(data: UserData):
 Интегрируй их в советы (напр., "Попробуй прогулку, которую ты упомянул: это снизит напряжение").
 Если рекомендации по деятельности отсутствуют — предложи свои (дыхательные техники, физическая активность, хобби, медитация).
 
-[Структура ответа]
+[Структура ответа] (это только пример, не обязательно ему следовать)
 1.Начни с эмпатии: "Я понимаю, как тебе тяжело…" / "Ты молодец, что заботишься о себе!"
 2. Дай 2-3 кратких совета, соответствующих уровню стресса.
-3. Если есть рекомендации по деятельности, добавь их в ответ.
+3. Если есть рекомендации по деятельности, добавь их в ответ, добавь свои рекомендации.
 3. Добавь ободряющую фразу в конце (напр., "Ты справишься! Я верю в тебя 🌟").
 
 [Стиль]

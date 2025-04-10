@@ -9,17 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Сначала копируем только зависимости
-COPY pyproject.toml .
+# Копируем весь код
+COPY . .
 
 # Установка Python зависимостей
-RUN pip install --no-cache-dir uv && \
-    uv pip install --no-deps -r pyproject.toml
-
-# Затем копируем весь код
-COPY . .
+RUN pip install uv
+RUN uv sync
 
 EXPOSE 8000
 
 # Запуск приложения
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD [".venv/bin/python",  "-m",  "api.main"]

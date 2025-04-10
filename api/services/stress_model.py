@@ -5,7 +5,7 @@ from pandas import DataFrame
 
 class StressModel:
     def __init__(self) -> None:
-        self.model = tf.keras.models.load_model('../../ml/models/stress_model.keras')
+        self.model = tf.keras.models.load_model('./ml/models/stress_model.keras')
 
     def predict(self, data: DataFrame) -> int:
         """
@@ -15,8 +15,8 @@ class StressModel:
         :return: int: Прогнозируемое значение
         """
         df = data.copy()
-        df['total_weekly_hours'] = df['Study Hours Per Week'] + df['Work Hours Per Week']
-        df['sleep_efficiency'] = df['Sleep Duration (Hours per night)'] / df['Social Media Usage (Hours per day)'].clip(
+        df['total_weekly_hours'] = df['study_hours_per_week'] + df['work_hours_per_week']
+        df['sleep_efficiency'] = df['sleep_duration'] / df['social_media_usage'].clip(
             1)
 
         predict = self.model.predict(df)[0][0]

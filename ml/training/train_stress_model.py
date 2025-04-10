@@ -1,9 +1,12 @@
 import tensorflow as tf
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+
+os.makedirs('training/metrics', exist_ok=True)
 
 # Загрузка данных
 df = pd.read_csv('data/stress_data.csv')

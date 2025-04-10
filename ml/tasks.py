@@ -14,7 +14,7 @@ def data(c):
 def train(c, model=None):
     """Запуск обучения моделей"""
     models = {
-        'stress': 'training/train_stress.py',
+        'stress': 'training/train_stress_model.py',
         'mechanism': 'training/train_mechanisms.py'
     }
 

@@ -9,6 +9,7 @@ load_dotenv()
 dataset = os.getenv('DATASET')
 
 df = pd.read_csv(f'../datasets/{dataset}')
+os.makedirs('data/metrics', exist_ok=True)
 
 print('Подготовка данных к анализу')
 
@@ -79,9 +80,9 @@ print('Разделение и сохранение данных')
 # Для модели предсказания стресса
 mechanism_columns = df.columns[14:24].tolist()
 stress_df = df.drop(columns=mechanism_columns)
-stress_df.to_csv('stress_data.csv', index=False)
+stress_df.to_csv('./data/stress_data.csv', index=False)
 
 # Для модели рекомендаций
 mechanism_columns = df.columns[14:24].tolist()
 mechanism_df = df[['Mental Stress Level'] + mechanism_columns]
-mechanism_df.to_csv('mechanism_data.csv', index=False)
+mechanism_df.to_csv('./data/mechanism_data.csv', index=False)

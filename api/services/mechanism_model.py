@@ -5,8 +5,8 @@ import pandas as pd
 
 class MechanismModel:
     def __init__(self) -> None:
-        self.mechanism_data = pd.read_csv('../../ml/data/mechanism_data.csv')
-        self.model = tf.keras.models.load_model('../../ml/models/mechanism_model.keras')
+        self.mechanism_data = pd.read_csv('./ml/data/mechanism_data.csv')
+        self.model = tf.keras.models.load_model('./ml/models/mechanisms_model.keras')
 
     def predict(self, data: int) -> list:
         """

@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -6,6 +7,8 @@ import seaborn as sns
 
 # Загрузка и подготовка данных
 df = pd.read_csv('data/mechanism_data.csv')
+
+os.makedirs('training/metrics', exist_ok=True)
 
 # Анализ распределения уровня стресса
 plt.hist(df['Mental Stress Level'], bins=11)
@@ -27,7 +30,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Построение перцептрона с несколькими выходами
 model = tf.keras.Sequential([
     tf.keras.layers.Dense(32, activation='relu', input_shape=(1,)),
-    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(16, activation='relu'),
     tf.keras.layers.Dense(y.shape[1], activation='sigmoid')
 ])
@@ -42,6 +45,14 @@ model.compile(
     ]
 )
 
+# Колбэк для сохранения лучшей модели
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    'models/mechanisms_model.keras',
+    save_best_only=True,
+    monitor='val_loss',
+    mode='min'
+)
+
 early_stopping = tf.keras.callbacks.EarlyStopping(
     monitor='val_loss',
     patience=5,
@@ -54,7 +65,7 @@ history = model.fit(
     epochs=50,
     batch_size=32,
     validation_split=0.2,
-    callbacks=[early_stopping],
+    callbacks=[early_stopping, checkpoint],
     verbose=1
 )
 
